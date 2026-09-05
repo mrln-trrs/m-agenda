@@ -1,5 +1,6 @@
 use m_agenda::engine::TimelineTransform;
 use m_agenda::model::TimeRange;
+use m_agenda::ui::canvas::GridViewport;
 
 #[test]
 fn test_val_03_temporal_coherence_adjacent_blocks() {
@@ -63,4 +64,30 @@ fn test_horizontal_columns_normalization() {
         assert_eq!(right, left + 100.0);
         assert_eq!(transform.x_to_day(left + 50.0), Some(d));
     }
+}
+
+#[test]
+fn test_dynamic_max_zoom_out_limit() {
+    let mut viewport = GridViewport::new();
+    let useful_height = 800.0f32;
+
+    // min_sy para 800 px debe ser exactamente 800 / 1440
+    let expected_min_sy = 800.0 / 1440.0;
+    assert!((viewport.min_sy(useful_height) - expected_min_sy).abs() < 1e-5);
+
+    // Si intentamos hacer zoom-out extremo (factor 0.01)
+    viewport.zoom_at(400.0, 0.01, 0.0, useful_height);
+
+    // Debe quedar clampado exactamente a min_sy
+    assert!((viewport.sy - expected_min_sy).abs() < 1e-5);
+    // Y el origen debe estar en 0.0 (00:00)
+    assert_eq!(viewport.origin_minute, 0.0);
+
+    // Intentar panear hacia arriba (minutos negativos)
+    viewport.pan(-200.0, useful_height);
+    assert_eq!(viewport.origin_minute, 0.0);
+
+    // Intentar panear hacia abajo (más allá de medianoche)
+    viewport.pan(200.0, useful_height);
+    assert_eq!(viewport.origin_minute, 0.0); // Con min_sy, max_origin es 1440 - 1440 = 0.0
 }

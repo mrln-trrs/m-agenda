@@ -33,6 +33,12 @@ impl ChronovexApp {
 
 impl eframe::App for ChronovexApp {
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        // Atajo de teclado F11 para alternar pantalla completa
+        if ctx.input(|i| i.key_pressed(egui::Key::F11)) {
+            let is_fullscreen = ctx.input(|i| i.viewport().fullscreen.unwrap_or(false));
+            ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(!is_fullscreen));
+        }
+
         // 1. Renderizar ventana nativa secundaria de opciones (Native Viewport independiente del SO)
         show_settings_viewport(ctx, &mut self.show_settings_window, &mut self.config);
 
@@ -62,8 +68,16 @@ impl eframe::App for ChronovexApp {
 
                 ui.separator();
 
-                if ui.button("↺ Reset Vista").clicked() {
-                    self.viewport.reset();
+                let is_fullscreen = ctx.input(|i| i.viewport().fullscreen.unwrap_or(false));
+                let fs_icon = if is_fullscreen { "🗗 Salir Pantalla Completa (F11)" } else { "⛶ Pantalla Completa (F11)" };
+                if ui.button(fs_icon).clicked() {
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(!is_fullscreen));
+                }
+
+                if ui.button("↺ Día Completo 100%").clicked() {
+                    let available_rect = ui.available_rect_before_wrap();
+                    let useful_height = (available_rect.height() - crate::ui::canvas::viewport::HEADER_HEIGHT).max(10.0);
+                    self.viewport.reset_full_day(useful_height);
                 }
 
                 ui.label(format!("Escala S_y: {:.2} px/min", self.viewport.sy));
@@ -86,30 +100,34 @@ impl eframe::App for ChronovexApp {
             .frame(egui::Frame::default().fill(theme.bg_canvas))
             .show(ctx, |ui| {
                 let available_rect = ui.available_rect_before_wrap();
+                let useful_height = (available_rect.height() - crate::ui::canvas::viewport::HEADER_HEIGHT).max(10.0);
+
+                // Auto-clamping dinámico ante redimensionamientos o F11
+                self.viewport.clamp_view(useful_height);
+
                 let response = ui.allocate_rect(available_rect, egui::Sense::click_and_drag());
                 let painter = ui.painter_at(available_rect);
 
-                // Manejo de Paneo (arrastre vertical con ratón o trackpad)
+                // Manejo de Paneo (arrastre vertical con ratón acotado sin vacíos)
                 if response.dragged() {
                     let drag_delta = response.drag_delta();
-                    self.viewport.pan(drag_delta.y);
+                    self.viewport.pan(drag_delta.y, useful_height);
                 }
 
-                // Manejo de Zoom suave con rueda del ratón (centrado en el cursor)
+                // Manejo de Zoom suave centrado en cursor que se detiene en 100% pantalla
                 let scroll_delta = ui.input(|i| i.raw_scroll_delta);
                 if scroll_delta.y != 0.0 {
                     let mouse_pos = ui.input(|i| i.pointer.hover_pos()).unwrap_or(available_rect.center());
                     let zoom_factor = if scroll_delta.y > 0.0 { 1.10 } else { 0.90 };
-                    self.viewport.zoom_at(mouse_pos.y, zoom_factor, available_rect.min.y);
+                    self.viewport.zoom_at(mouse_pos.y, zoom_factor, available_rect.min.y, useful_height);
                 }
 
                 let transform = self.viewport.to_transform(available_rect);
 
-                // Detección de doble clic o clic para crear o seleccionar evento
+                // Detección de selección de evento o clic
                 if response.clicked() {
                     if let Some(click_pos) = response.interact_pointer_pos() {
                         if let Some(day) = transform.x_to_day(click_pos.x) {
-                            // Verificar si se hizo clic sobre un evento existente
                             let day_events = self.model.events_for_day(day);
                             let lane_assignments = crate::engine::resolve_day_overlaps(&day_events);
                             let mut clicked_event = None;
@@ -143,6 +161,7 @@ impl eframe::App for ChronovexApp {
                     }
                 }
 
+                // Doble clic para crear evento rápido
                 if response.double_clicked() {
                     if let Some(pos) = response.interact_pointer_pos() {
                         if let Some(day) = transform.x_to_day(pos.x) {
