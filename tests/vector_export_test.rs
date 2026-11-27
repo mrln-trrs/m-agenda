@@ -37,3 +37,23 @@ fn test_val_02_pure_vector_pdf_export() {
     let pdf_text = String::from_utf8_lossy(&pdf_bytes);
     assert!(!pdf_text.contains("/Subtype /Image"), "El PDF vectorial puro NO debe contener /Subtype /Image rasterizado");
 }
+
+#[test]
+fn test_pdf_export_writes_valid_file() {
+    let model = AgendaModel::create_sample_week();
+    for dark_mode in [false, true] {
+        let options = PdfExportOptions { dark_mode, ..PdfExportOptions::default() };
+        let pdf_bytes = generate_pdf_16_9(&model, &options).expect("La generación de PDF debe ser exitosa");
+
+        let dir = tempfile::tempdir().expect("directorio temporal");
+        let path = dir.path().join("agenda.pdf");
+        std::fs::write(&path, &pdf_bytes).expect("escritura del PDF");
+
+        let written = std::fs::read(&path).expect("lectura del PDF");
+        assert!(written.starts_with(b"%PDF"), "El archivo debe empezar con la cabecera %PDF");
+        assert!(std::fs::metadata(&path).unwrap().len() > 0, "El PDF no debe estar vacío");
+        let text = String::from_utf8_lossy(&written);
+        assert!(text.contains("/Helvetica-Bold"), "Debe usar la fuente estándar Helvetica-Bold");
+        assert!(text.contains("/Type /Page") || text.contains("/Type/Page"), "Debe contener al menos una página");
+    }
+}
