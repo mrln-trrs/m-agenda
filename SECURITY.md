@@ -4,7 +4,8 @@
 
 | Versión | Soporte |
 |---|---|
-| 0.1.x | Sí |
+| 0.2.x | Sí |
+| 0.1.x | No |
 
 ## Cómo reportar una vulnerabilidad
 
@@ -12,4 +13,4 @@ Abra un aviso privado desde la pestaña **Security → Report a vulnerability** 
 
 ## Avisos conocidos
 
-- `lopdf` 0.31 (dependencia de `printpdf` 0.7) tiene un aviso por desbordamiento de pila al **leer** PDF muy anidados. M-Agenda solo **escribe** PDF y nunca abre PDF de terceros, por lo que el código afectado no se ejecuta. Se corregirá al migrar el exportador a `printpdf` ≥ 0.11 (ver README, «Limitaciones conocidas»).
+Ninguno abierto. El aviso de `lopdf` 0.31 (desbordamiento de pila al leer PDF muy anidados) se cerró en la v0.2.0 al migrar el exportador a `printpdf` 0.13, que usa `lopdf` 0.47.

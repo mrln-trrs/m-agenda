@@ -8,7 +8,7 @@ Planificador semanal de escritorio con lienzo vectorial continuo, nivel de detal
 
 ## Estado del proyecto
 
-**Experimental** (v0.1.0). La interfaz, el motor de coordenadas y los exportadores funcionan y tienen pruebas, pero la agenda todavía no se guarda en disco (ver «Limitaciones conocidas»).
+**Experimental** (v0.2.0). La interfaz, el motor de coordenadas y los exportadores funcionan y tienen pruebas, pero la agenda todavía no se guarda en disco (ver «Limitaciones conocidas»).
 
 ## Características
 
@@ -32,7 +32,7 @@ Planificador semanal de escritorio con lienzo vectorial continuo, nivel de detal
 |---|---|
 | Rust | edición 2021 (probado con rustc 1.100) |
 | egui / eframe | 0.29 (backend `glow`) |
-| printpdf | 0.7 |
+| printpdf | 0.13 |
 | rfd (diálogos de archivo) | 0.15 |
 | chrono, serde, serde_json | 0.4 / 1.x / 1.x |
 
@@ -74,7 +74,6 @@ REQUISITOS_VALIDACION.md  # especificación y criterios de validación
 ## Limitaciones conocidas
 
 - **Sin persistencia**: las actividades viven en memoria; al cerrar la aplicación se pierden. Solo quedan los archivos exportados.
-- **Aviso de seguridad de `lopdf` 0.31**: `printpdf` 0.7 depende de `lopdf` 0.31, que tiene un aviso por desbordamiento de pila al **leer** PDF muy anidados (corregido en `lopdf` 0.42). Cerrarlo exige subir a `printpdf` ≥ 0.11, cuya API cambió por completo, y reescribir `src/export/pdf.rs`. **Impacto bajo**: M-Agenda solo escribe PDF y nunca abre PDF de terceros, así que el código afectado no se ejecuta.
 - **Dependencias atrasadas**: egui/eframe 0.29 (la última es 0.37) y rfd 0.15 (la última es 0.18); subirlas implica cambios de API.
 - Sin integración continua.
 
